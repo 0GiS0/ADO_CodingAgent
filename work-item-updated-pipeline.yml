@@ -26,20 +26,29 @@ stages:
         displayName: '💬 Detect comment for user'
         steps:
           - bash: |
+              echo "==============================================="
+              echo "📋 DETAILED MESSAGE FOR DEBUG"
+              echo "==============================================="
+              echo "${{ parameters.myWebhookResource.detailedMessage.text }}"
+              echo "==============================================="
+            displayName: '📋 [DEBUG] Display detailed message'
+          - bash: |
               echo "[CHECK] Searching for comment for user 19DAE5DA-4B58-6756-B0D6-ACC8BE43BE2D..."
               echo "${{ parameters.myWebhookResource.detailedMessage.text }}" | grep -q "@<19DAE5DA-4B58-6756-B0D6-ACC8BE43BE2D>"
               if [ $? -eq 0 ]; then
+                echo "##vso[task.setvariable variable=USER_COMMENT_DETECTED;isOutput=true]true"
                 echo "Comment for user detected. Continuing pipeline..."
               else
+                echo "##vso[task.setvariable variable=USER_COMMENT_DETECTED;isOutput=true]false"
                 echo "No comment for user. Ending pipeline."
-                exit 1
               fi
             displayName: '🔎 [CHECK] Detect comment for specific user'
+            name: CheckComment
 
   - stage: process_event
     displayName: '🚀 Process Webhook Event'
     dependsOn: check_comment
-    condition: succeeded('check_comment')
+    condition: eq(dependencies.check_comment.outputs['check_comment_job.CheckComment.USER_COMMENT_DETECTED'], 'true')
     jobs:
       - job: process_event_job
         displayName: '📋 Show Webhook Event Data'
